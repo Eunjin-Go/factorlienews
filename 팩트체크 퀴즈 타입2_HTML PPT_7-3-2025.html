@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>진짜와 가짜를 찾아라! 2 - 팩트체크 퀴즈</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        .mobile-app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 헤더 스타일 */
+        .app-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .slide-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-bar {
+            width: 100px;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s ease;
+        }
+
+        /* 슬라이드 컨테이너 */
+        .slides-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+
+        /* 제목 슬라이드 특별 스타일 */
+        .title-slide {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .main-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 40px;
+        }
+
+        .intro-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+
+        .intro-card h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .intro-card p {
+            line-height: 1.6;
+            color: #555;
+        }
+
+        /* 컨텐츠 카드 */
+        .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 80px; /* 버튼 공간 확보 */
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+        }
+
+        .news-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .news-content {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #555;
+            text-align: justify;
+            white-space: pre-wrap;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        /* 하단 네비게이션 */
+        .bottom-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: scale(1.05);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slide-dots {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            overflow-x: auto;
+            max-width: 60%;
+            padding: 0 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .dot.active {
+            background: #667eea;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* 반응 버튼 */
+        .reaction-buttons {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            z-index: 50;
+        }
+
+        .reaction-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reaction-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .reaction-btn.like {
+            border-color: #4ecdc4;
+            color: #4ecdc4;
+        }
+
+        .reaction-btn.like:hover {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .reaction-btn.share {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .reaction-btn.share:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .reaction-btn.skip {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        .reaction-btn.skip:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* 결과 표시 */
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            z-index: 1000;
+            text-align: center;
+            transition: transform 0.3s ease;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .result-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .result-popup h3 {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .result-popup p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .result-popup button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* 정답 표시 스타일 */
+        .answer-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .answer-badge.true {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .answer-badge.false {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* 반응형 미디어 쿼리 */
+        @media (min-width: 768px) {
+            .slide {
+                padding: 40px;
+            }
+            
+            .content-card {
+                padding: 32px;
+                max-width: 800px;
+                margin: 0 auto 100px;
+            }
+
+            .news-title {
+                font-size: 24px;
+            }
+
+            .news-content {
+                font-size: 17px;
+                max-height: 60vh;
+            }
+
+            .main-title {
+                font-size: 48px;
+            }
+
+            .subtitle {
+                font-size: 24px;
+            }
+
+            .reaction-btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+        }
+
+        /* 스크롤바 스타일 */
+        .news-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .news-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .news-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .news-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* 로딩 애니메이션 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide.active .content-card {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-app">
+        <!-- 상단 헤더 -->
+        <div class="app-header">
+            <div class="header-content">
+                <div class="app-title">🔍 진짜와 가짜를 찾아라! 2</div>
+                <div class="slide-indicator">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span id="slideCounter">1/21</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 슬라이드 컨테이너 -->
+        <div class="slides-container">
+            <!-- 타이틀 슬라이드 -->
+            <div class="slide active title-slide">
+                <h1 class="main-title">🔍 진짜와 가짜를 찾아라! 2</h1>
+                <p class="subtitle">미디어 리터러시 팩트체크 퀴즈</p>
+                
+                <div class="intro-card">
+                    <h3>📋 퀴즈 안내</h3>
+                    <p>이제부터 20개의 뉴스를 보여드릴게요.<br>
+                    각 뉴스를 읽고 다음 중 하나를 선택해주세요:</p>
+                </div>
+
+                <div class="intro-card">
+                    <h3>👍 좋아요</h3>
+                    <p>진짜 뉴스라고 생각할 때</p>
+                </div>
+
+                <div class="intro-card">
+                    <h3>📤 공유</h3>
+                    <p>진짜이면서 유용하다고 생각할 때</p>
+                </div>
+
+                <div class="intro-card">
+                    <h3>⏭️ 스킵</h3>
+                    <p>가짜 뉴스라고 생각할 때</p>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 1 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"비건 버거, 실제 고기보다 더 많은 단백질 함유"</h2>
+                    <div class="news-content">최근 출시된 비건 버거가 실제 고기보다 더 많은 단백질을 함유하고 있다는 연구 결과가 발표되었다. 이 식물성 버거는 단백질 보충제로서 훌륭한 대안이 될 수 있으며, 영양가 면에서 고기를 능가할 수 있다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 2 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"AI가 작곡한 음악, 정통 클래식 음악가들과 구별 불가능"</h2>
+                    <div class="news-content">AI가 작곡한 음악이 정통 클래식 음악가의 작품과 구별이 불가능하다는 연구 결과가 나왔다. AI가 학습한 고전 음악의 패턴을 바탕으로 작곡한 곡이 인간 작곡가의 작품으로 혼동될 만큼 높은 수준이라는 분석입니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 3 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"OPEN AI Chat GPT, 개인비서 버전 출시"</h2>
+                    <div class="news-content">2025년 초에 Chat GPT를 통해 실시간 날씨 예보, 스케쥴 관리 등 실시간 정보 확인과 개인에 맞춤화된 버전의 AI를 출시합니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 4 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"무인 드론 택배, 도심 지역에서 상용화 시작"</h2>
+                    <div class="news-content">도심 지역에서 무인 드론을 이용한 택배 서비스가 실제로 상용화되었습니다. 이 서비스는 교통 체증을 피하고 신속하게 물품을 배송할 수 있는 방법으로, 여러 대도시에서 성공적으로 운영되고 있습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 5 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"유럽, 플라스틱 사용 금지 법안 통과"</h2>
+                    <div class="news-content">유럽 의회가 일회용 플라스틱 제품 사용을 금지하는 법안을 통과됐습니다. 이 법안은 환경 보호를 위해 마련된 것으로, 2025년부터 시행될 예정이라고 합니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 6 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"특정 앱 사용하면 매월 현금 보상 제공"</h2>
+                    <div class="news-content">특정 건강 관리 앱을 사용하면 매월 현금 보상을 받을 수 있다는 앱이 출시됐습니다. 사용자의 건강 데이터를 분석하여 일정 목표를 달성할 때마다 보상을 제공합니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 7 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"10대 청소년, 앱을 통해 30일 만에 코딩 능력 습득"</h2>
+                    <div class="news-content">한 교육 앱을 통해 10대 청소년들이 30일 만에 코딩 능력을 습득하는 사례가 다수 보고되었습니다. 이 앱은 게임처럼 재미있게 코딩을 배울 수 있는 구조로 설계되어 청소년들에게 큰 인기를 얻고 있습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 8 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"국내 유수 30개 대학교, 무료 온라인 강의 제공"</h2>
+                    <div class="news-content">국내 유수 30개 대학교가 일반 시민을 대상으로 무료로 온라인 강의를 제공합니다. 이번 프로그램은 누구나 쉽게 고등 교육을 받을 수 있도록 하기 위한 취지로 시작되었습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 9 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"해양 플라스틱 오염을 막기 위해 유전자 변형 미생물 투입"</h2>
+                    <div class="news-content">해양 플라스틱 오염을 해결하기 위해 유전자 변형 미생물이 실제로 투입되었습니다. 이 미생물은 플라스틱을 빠르게 분해할 수 있는 능력을 갖추고 있으며, 해양 오염 문제를 해결하는 데 중요한 역할을 할 것으로 기대됩니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 10 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"FDD-A 보충제, 치매 예방에 탁월한 효과 입증"</h2>
+                    <div class="news-content">FDD-A 보충제를 꾸준히 섭취하면 치매를 예방할 수 있다는 연구 결과가 발표되었습니다. 연구팀은 이 보충제가 뇌 기능을 향상시키는 연구 결과를 증명했습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 11 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"스마트 가전, 음성 명령으로 완벽 제어"</h2>
+                    <div class="news-content">음성 명령으로 모든 기능을 제어할 수 있는 스마트 가전제품들이 출시되고 있습니다. 이 기술은 인공지능을 기반으로 하여 사용자의 명령을 정확하게 인식하고 실행합니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 12 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"모든 공공장소, 무료 와이파이 제공 법안 통과"</h2>
+                    <div class="news-content">정부가 모든 공공장소에서 무료 와이파이를 제공하는 정책을 시행합니다. 이 정책은 2026년까지 완료할 예정으로 광화문 광장을 시작으로 점차 확장할 예정이라고 과기부는 밝혔습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 13 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"태양광 패널로 충전 가능한 전기 자동차 상용화"</h2>
+                    <div class="news-content">태양광 패널로 충전이 가능한 전기 자동차가 상용화되었습니다. 이 자동차는 태양 에너지를 이용해 배터리를 충전하며, 에너지 효율을 높인 친환경 교통수단으로 주목받고 있습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 14 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"인공지능, 의료 진단에서 인간 의사 능가"</h2>
+                    <div class="news-content">인공지능이 일부 의료 진단 분야에서 인간 의사의 능력을 능가한다는 연구 결과가 발표되었습니다. 인공지능 시스템은 대량의 의료 데이터를 분석하여 높은 정확도의 진단 결과를 도출할 수 있습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 15 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"2025년부터 국내 주요 항공사, 무인조종 항공편 도입"</h2>
+                    <div class="news-content">2025년부터 국내 주요 항공사는 무인조종 항공편을 도입합니다. 이 항공편은 인건비 절약으로 보다 저렴하게 이용할 수 있지만, 아직 안전성에 대한 문제제기는 끊이지 않고있습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 16 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"어린이 게임 시간, AI가 제한하는 정책 도입 예정"</h2>
+                    <div class="news-content">모든 게임 플랫폼에 AI가 접목되어 어린이 사용자의 게임 시간을 자동으로 제한하는 시스템이 2027년부터 적용됩니다. 이 기능은 12세 미만 어린이들에게 AI가 시간 사용을 조정하는 정책입니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 17 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"식물에서 추출한 신약, 암 치료에 획기적 효과"</h2>
+                    <div class="news-content">식물에서 추출한 신약이 암 치료에 획기적인 효과를 보였다는 연구 결과가 나왔습니다. 이 신약은 기존 치료법에 비해 부작용이 적고, 치료 효과가 뛰어나 많은 기대를 받고 있습니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 18 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"일본, 해양에 떠다니는 플라스틱을 완전히 제거할 수 있는 미세로봇 개발"</h2>
+                    <div class="news-content">일본의 한 연구팀이 해양에 떠다니는 미세 플라스틱을 완전히 제거할 수 있는 로봇을 개발하였다. 이 로봇은 초음파를 이용해 플라스틱을 자동으로 감지하고 처리합니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 19 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge false">✗ 거짓</div>
+                    <h2 class="news-title">"모든 스마트폰, 2025년부터 사용자가 원하는 광고만 표시 가능"</h2>
+                    <div class="news-content">2025년부터 모든 스마트폰은 사용자가 직접 광고를 선택해 볼 수 있는 기능이 도입됩니다. 이 기능은 AI가 사용자의 취향을 분석하여 원하는 광고만 노출시키는 기술로, 광고 스트레스를 줄여줍니다.</div>
+                </div>
+            </div>
+
+            <!-- 뉴스 슬라이드 20 -->
+            <div class="slide">
+                <div class="content-card">
+                    <div class="answer-badge true">✓ 진실</div>
+                    <h2 class="news-title">"우주 관광 시대 개막, 민간인 첫 우주 여행 성공"</h2>
+                    <div class="news-content">민간인 우주 여행이 성공적으로 이루어지면서 우주 관광 시대가 본격적으로 개막했습니다. 여러 우주 여행 기업들이 경쟁하며 다양한 우주 관광 상품을 출시하고 있습니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 하단 네비게이션 -->
+        <div class="bottom-nav">
+            <button class="nav-btn" id="prevBtn" onclick="previousSlide()" disabled>◀</button>
+            <div class="slide-dots" id="slideDots">
+                <!-- 도트들이 자동 생성됨 -->
+            </div>
+            <button class="nav-btn" id="nextBtn" onclick="nextSlide()">▶</button>
+        </div>
+
+        <!-- 반응 버튼 (타이틀 슬라이드 제외) -->
+        <div class="reaction-buttons" id="reactionButtons" style="display: none;">
+            <button class="reaction-btn like" onclick="handleReaction('like')">
+                👍 좋아요
+            </button>
+            <button class="reaction-btn share" onclick="handleReaction('share')">
+                📤 공유
+            </button>
+            <button class="reaction-btn skip" onclick="handleReaction('skip')">
+                ⏭️ 스킵
+            </button>
+        </div>
+
+        <!-- 결과 팝업 -->
+        <div class="result-popup" id="resultPopup">
+            <h3 id="resultTitle"></h3>
+            <p id="resultText"></p>
+            <p id="resultDetail"></p>
+            <button onclick="closeResult()">확인</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const totalSlides = 21;
+        let slides = document.querySelectorAll('.slide');
+        let dots = [];
+        let userAnswers = [];
+
+        // 정답 데이터 (제공된 순서대로)
+        const answers = [
+            null, // 타이틀 슬라이드
+            'true', 'true', 'false', 'true', 'false',
+            'false', 'true', 'false', 'true', 'false',
+            'true', 'false', 'true', 'true', 'false',
+            'false', 'true', 'false', 'false', 'true'
+        ];
+
+        // 초기화
+        function init() {
+            createDots();
+            updateUI();
+            
+            // 스와이프 이벤트 리스너
+            let startX = 0;
+            let endX = 0;
+
+            document.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+            }, { passive: true });
+
+            document.addEventListener('touchend', function(e) {
+                endX = e.changedTouches[0].clientX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const diffX = startX - endX;
+                const threshold = 50;
+
+                if (Math.abs(diffX) > threshold) {
+                    if (diffX > 0) {
+                        nextSlide();
+                    } else {
+                        previousSlide();
+                    }
+                }
+            }
+
+            // 키보드 이벤트
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight') nextSlide();
+                if (e.key === 'ArrowLeft') previousSlide();
+            });
+        }
+
+        // 도트 생성
+        function createDots() {
+            const dotsContainer = document.getElementById('slideDots');
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                if (i === 0) dot.classList.add('active');
+                dot.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(dot);
+                dots.push(dot);
+            }
+        }
+
+        // 슬라이드 이동
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides) return;
+            if (index === currentSlideIndex) return;
+
+            // 이전 슬라이드 숨기기
+            slides[currentSlideIndex].classList.remove('active');
+            dots[currentSlideIndex].classList.remove('active');
+            
+            if (index > currentSlideIndex) {
+                slides[currentSlideIndex].classList.add('prev');
+            } else {
+                slides[currentSlideIndex].classList.remove('prev');
+            }
+
+            // 새 슬라이드 보이기
+            setTimeout(() => {
+                slides[currentSlideIndex].classList.remove('prev');
+                slides[index].classList.add('active');
+                dots[index].classList.add('active');
+                currentSlideIndex = index;
+                updateUI();
+            }, 50);
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            // 진행률 업데이트
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = ((currentSlideIndex + 1) / totalSlides * 100) + '%';
+
+            // 슬라이드 카운터 업데이트
+            document.getElementById('slideCounter').textContent = `${currentSlideIndex + 1}/${totalSlides}`;
+
+            // 네비게이션 버튼 상태 업데이트
+            document.getElementById('prevBtn').disabled = currentSlideIndex === 0;
+            document.getElementById('nextBtn').disabled = currentSlideIndex === totalSlides - 1;
+
+            // 반응 버튼 표시/숨기기 (타이틀 슬라이드 제외)
+            const reactionButtons = document.getElementById('reactionButtons');
+            if (currentSlideIndex === 0) {
+                reactionButtons.style.display = 'none';
+            } else {
+                reactionButtons.style.display = 'flex';
+            }
+
+            // 이미 답변한 슬라이드인 경우 정답 표시
+            if (userAnswers[currentSlideIndex]) {
+                showAnswer();
+            }
+        }
+
+        // 다음 슬라이드
+        function nextSlide() {
+            if (currentSlideIndex < totalSlides - 1) {
+                goToSlide(currentSlideIndex + 1);
+            }
+        }
+
+        // 이전 슬라이드
+        function previousSlide() {
+            if (currentSlideIndex > 0) {
+                goToSlide(currentSlideIndex - 1);
+            }
+        }
+
+        // 반응 처리
+        function handleReaction(reaction) {
+            userAnswers[currentSlideIndex] = reaction;
+            showAnswer();
+            showResult(reaction);
+        }
+
+        // 정답 표시
+        function showAnswer() {
+            const answerBadge = slides[currentSlideIndex].querySelector('.answer-badge');
+            if (answerBadge) {
+                answerBadge.style.display = 'block';
+            }
+        }
+
+        // 결과 표시
+        function showResult(userChoice) {
+            const correctAnswer = answers[currentSlideIndex];
+            const resultPopup = document.getElementById('resultPopup');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultText = document.getElementById('resultText');
+            const resultDetail = document.getElementById('resultDetail');
+
+            let isCorrect = false;
+            let titleText = '';
+            let detailText = '';
+
+            // 정답 체크
+            if (correctAnswer === 'true') {
+                if (userChoice === 'like' || userChoice === 'share') {
+                    isCorrect = true;
+                    titleText = '✅ 정답입니다!';
+                    detailText = '이 뉴스는 진실입니다.';
+                } else {
+                    titleText = '❌ 틀렸습니다';
+                    detailText = '이 뉴스는 진실입니다. 신뢰할 수 있는 출처에서 확인된 사실입니다.';
+                }
+            } else if (correctAnswer === 'false') {
+                if (userChoice === 'skip') {
+                    isCorrect = true;
+                    titleText = '✅ 정답입니다!';
+                    detailText = '이 뉴스는 거짓입니다.';
+                } else {
+                    titleText = '❌ 틀렸습니다';
+                    detailText = '이 뉴스는 거짓입니다. 팩트체크 결과 사실이 아닌 것으로 확인되었습니다.';
+                }
+            }
+
+            resultTitle.textContent = titleText;
+            resultText.textContent = detailText;
+            resultDetail.textContent = isCorrect ? 
+                '미디어를 비판적으로 읽는 능력이 뛰어나시네요!' : 
+                '팩트체크는 연습이 필요합니다. 계속 노력해보세요!';
+
+            resultPopup.classList.add('show');
+            
+            // 3초 후 자동으로 닫기
+            setTimeout(() => {
+                closeResult();
+            }, 3000);
+        }
+
+        // 결과 닫기
+        function closeResult() {
+            document.getElementById('resultPopup').classList.remove('show');
+        }
+
+        // 초기화 실행
+        init();
+    </script>
+</body>
+</html>
